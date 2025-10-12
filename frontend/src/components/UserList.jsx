@@ -1,21 +1,17 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+// src/components/UserList.jsx
+import React from 'react';
 
-const UserList = () => {
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    axios.get("http://localhost:3000/users")
-         .then(res => setUsers(res.data))
-         .catch(err => console.error(err));
-  }, []);
-
+// Nhận prop 'users' từ App.js
+const UserList = ({ users }) => {
   return (
     <div>
       <h2>Danh sách User</h2>
       <ul>
-        {users.map(u => (
-          <li key={u.id}>{u.name} – {u.email}</li>
+        {/* Dùng mảng users được truyền vào để hiển thị */}
+        {users.map((user) => (
+          <li key={user._id}>
+            {user.name} - {user.email}
+          </li>
         ))}
       </ul>
     </div>
