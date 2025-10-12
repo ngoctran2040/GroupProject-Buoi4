@@ -1,7 +1,7 @@
 // --- Import thư viện Express ---
 const express = require('express');
 const app = express();
-
+const cors = require('cors'); 
 // --- Cho phép truy cập từ mọi nguồn (fix lỗi CORS khi test HTML) ---
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,6 +12,8 @@ app.use((req, res, next) => {
 
 // --- Cho phép đọc JSON từ body request ---
 app.use(express.json());
+
+app.use(cors()); // Thêm dòng này
 
 // --- Import file routes ---
 const userRoutes = require('./routes/user');

@@ -1,0 +1,6 @@
+{
+  "users": [
+    { "id": 1, "name": "Trúc Phương", "email": "phuong@gmail.com" },
+    { "id": 2, "name": "Ngọc Trân", "email": "ngoctran@gmail.com" }
+  ]
+}
