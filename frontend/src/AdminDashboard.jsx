@@ -1,51 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import './AdminDashboard.css'; // File CSS mới để style bảng
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import "./AdminDashboard.css"; // CSS bảng quản lý
 
 function AdminDashboard() {
   const [users, setUsers] = useState([]);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const token = localStorage.getItem('token');
-  const authHeaders = {
-    headers: { Authorization: `Bearer ${token}` },
-  };
+  const token = localStorage.getItem("token");
 
-  // 1. Hàm lấy danh sách user
-  const fetchUsers = async () => {
+  // 🧩 1️⃣ Dùng useCallback (giờ chỉ phụ thuộc vào token)
+  const fetchUsers = useCallback(async () => {
     try {
-      setError('');
-      const res = await axios.get(
-        'http://localhost:3000/users',
-        authHeaders
-      );
+      setError("");
+      const res = await axios.get("http://localhost:3000/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setUsers(res.data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Không thể tải danh sách');
+      console.error("❌ Lỗi khi tải danh sách:", err);
+      setError(err.response?.data?.message || "Không thể tải danh sách người dùng");
     }
-  };
+  }, [token]); // ✅ Chỉ phụ thuộc vào token (chuẩn nhất)
 
-  // 2. Tự động gọi hàm fetchUsers khi component render
+  // 🧩 2️⃣ Gọi fetchUsers khi component render lần đầu
   useEffect(() => {
     fetchUsers();
-  }, []); // Chỉ chạy 1 lần
+  }, [fetchUsers]);
 
-  // 3. Hàm xử lý xóa user
+  // 🧩 3️⃣ Xử lý xóa user
   const handleDelete = async (userId, userName) => {
     if (window.confirm(`Bạn có chắc muốn xóa user "${userName}"?`)) {
       try {
-        setMessage('');
-        setError('');
+        setMessage("");
+        setError("");
         const res = await axios.delete(
           `http://localhost:3000/users/${userId}`,
-          authHeaders
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
-        setMessage(res.data.message || 'Xóa thành công!');
-        // Tải lại danh sách user sau khi xóa
-        fetchUsers(); 
+        setMessage(res.data.message || "Xóa thành công!");
+        fetchUsers(); // ✅ Tải lại danh sách
       } catch (err) {
-        setError(err.response?.data?.message || 'Lỗi khi xóa');
+        console.error("❌ Lỗi khi xóa:", err);
+        setError(err.response?.data?.message || "Lỗi khi xóa người dùng");
       }
     }
   };
@@ -53,40 +52,45 @@ function AdminDashboard() {
   return (
     <div className="admin-container">
       <h2>Quản lý Người dùng</h2>
+
       {message && <p className="admin-message success">{message}</p>}
       {error && <p className="admin-message error">{error}</p>}
 
-      <table className="users-table">
-        <thead>
-          <tr>
-            <th>Tên</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user._id}>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>
-                <span className={`role-badge role-${user.role}`}>
-                  {user.role}
-                </span>
-              </td>
-              <td>
-                <button 
-                  className="delete-btn"
-                  onClick={() => handleDelete(user._id, user.name)}
-                >
-                  Xóa
-                </button>
-              </td>
+      {users.length === 0 ? (
+        <p className="no-users">Không có người dùng nào.</p>
+      ) : (
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Tên</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Hành động</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user._id}>
+                <td>{user.name}</td>
+                <td>{user.email}</td>
+                <td>
+                  <span className={`role-badge role-${user.role}`}>
+                    {user.role}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    className="delete-btn"
+                    onClick={() => handleDelete(user._id, user.name)}
+                  >
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

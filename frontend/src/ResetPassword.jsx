@@ -4,8 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import './Auth.css'; // Dùng chung CSS
 
 function ResetPassword() {
-  // 1. Lấy token từ URL
-  // (ví dụ: /reset-password/abc123def -> token = "abc123def")
+  // 1️⃣ Lấy token từ URL (ví dụ: /reset-password/abc123def → token = "abc123def")
   const { token } = useParams(); 
   
   const [password, setPassword] = useState('');
@@ -14,37 +13,39 @@ function ResetPassword() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // 2️⃣ Hàm xử lý khi người dùng bấm “Lưu mật khẩu”
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     setError('');
 
-    // 2. Kiểm tra mật khẩu có khớp không
+    // Kiểm tra xác nhận mật khẩu
     if (password !== confirmPassword) {
-      setError('Mật khẩu không khớp. Vui lòng nhập lại.');
+      setError('❌ Mật khẩu không khớp. Vui lòng nhập lại.');
       return;
     }
 
     try {
-      // 3. Gọi API backend, gửi token trong URL và password mới trong body
-      const res = await axios.put(
-        `http://localhost:3000/users/reset-password/${token}`, 
+      // 3️⃣ Gọi API Backend (đường dẫn và method đã sửa đúng)
+      const res = await axios.post(
+        `http://localhost:3000/auth/reset-password/${token}`,
         { password }
       );
-      
-      setMessage(res.data.message || 'Đổi mật khẩu thành công!');
+
+      setMessage(res.data.message || '✅ Đặt lại mật khẩu thành công!');
       setError('');
 
-      // 4. Chờ 2 giây rồi tự động chuyển về trang đăng nhập
+      // 4️⃣ Tự động chuyển về trang đăng nhập sau 2 giây
       setTimeout(() => {
         navigate('/login');
       }, 2000);
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Lỗi. Token không hợp lệ hoặc đã hết hạn.');
+      setError(err.response?.data?.message || '❌ Token không hợp lệ hoặc đã hết hạn.');
     }
   };
 
+  // 5️⃣ Giao diện hiển thị
   return (
     <div className="auth-container">
       <form className="auth-form" onSubmit={handleSubmit}>
@@ -75,17 +76,13 @@ function ResetPassword() {
         <button type="submit">Lưu mật khẩu</button>
 
         {message && (
-          <p className={`message success`}>
-            {message}
-          </p>
+          <p className="message success">{message}</p>
         )}
         {error && (
-          <p className={`message`}>
-            {error}
-          </p>
+          <p className="message">{error}</p>
         )}
 
-        {/* Link quay về trang Đăng nhập (nếu đổi ý) */}
+        {/* Link quay lại đăng nhập */}
         <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
           <Link to="/login">Quay lại Đăng nhập</Link>
         </div>
@@ -95,4 +92,3 @@ function ResetPassword() {
 }
 
 export default ResetPassword;
-

@@ -2,83 +2,127 @@
   width: 90%;
   max-width: 1000px;
   margin: 2rem auto;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #333;
 }
 
+/* Tiêu đề */
 .admin-container h2 {
   text-align: center;
-  color: #333;
+  color: #222;
   margin-bottom: 2rem;
+  font-size: 1.8rem;
+  letter-spacing: 0.5px;
 }
 
+/* Thông báo */
 .admin-message {
   text-align: center;
   padding: 1rem;
-  border-radius: 5px;
+  border-radius: 6px;
   margin-bottom: 1.5rem;
+  font-weight: 600;
 }
 .admin-message.success {
   background-color: #d4edda;
   color: #155724;
+  border: 1px solid #c3e6cb;
 }
 .admin-message.error {
   background-color: #f8d7da;
   color: #721c24;
+  border: 1px solid #f5c6cb;
 }
 
+/* Bảng người dùng */
 .users-table {
   width: 100%;
   border-collapse: collapse;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   background: #fff;
   border-radius: 10px;
-  overflow: hidden; /* Giúp bo góc hoạt động */
+  overflow: hidden; /* giúp bo góc */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.users-table th,
+/* Header bảng */
+.users-table th {
+  background-color: #f5f5f5;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555;
+  text-align: left;
+  padding: 1rem 1.25rem;
+}
+
+/* Dòng dữ liệu */
 .users-table td {
   padding: 1rem 1.25rem;
-  text-align: left;
   border-bottom: 1px solid #eee;
+  word-break: break-word;
 }
 
-.users-table th {
-  background-color: #f9f9f9;
-  font-size: 0.9rem;
-  color: #555;
-  text-transform: uppercase;
+/* Hiệu ứng hover */
+.users-table tr:hover {
+  background-color: #fdfdfd;
 }
 
-.users-table td {
-  color: #333;
-  word-break: break-all; /* Ngăn email dài vỡ layout */
-}
-
+/* Badge Role */
 .role-badge {
-  padding: 0.25rem 0.6rem;
-  border-radius: 15px;
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  border-radius: 12px;
   font-size: 0.85rem;
   font-weight: bold;
   color: #fff;
+  text-transform: capitalize;
 }
 .role-badge.role-admin {
-  background-color: #f39c12; /* Màu cam */
+  background-color: #f39c12;
 }
 .role-badge.role-user {
-  background-color: #007bff; /* Màu xanh */
+  background-color: #007bff;
 }
 
+/* Nút xóa */
 .delete-btn {
-  padding: 0.5rem 0.8rem;
-  background-color: #dc3545; /* Màu đỏ */
-  color: white;
+  padding: 0.5rem 0.9rem;
+  background-color: #dc3545;
+  color: #fff;
   border: none;
   border-radius: 5px;
   font-size: 0.9rem;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease-in-out;
 }
 .delete-btn:hover {
   background-color: #c82333;
+  transform: scale(1.05);
+}
+
+/* Khi không có người dùng */
+.no-users {
+  text-align: center;
+  color: #666;
+  padding: 1.5rem;
+  font-style: italic;
+}
+
+/* Responsive cho màn hình nhỏ */
+@media (max-width: 768px) {
+  .users-table th,
+  .users-table td {
+    padding: 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .delete-btn {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
+  }
+
+  .admin-container h2 {
+    font-size: 1.5rem;
+  }
 }

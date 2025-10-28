@@ -22,7 +22,7 @@ function Login({ onLoginSuccess }) {
     setMessage("");
 
     try {
-      const res = await axios.post("http://localhost:3000/users/login", formData);
+      const res = await axios.post("http://localhost:3000/auth/login", formData);
       
       // Lưu tất cả thông tin
       localStorage.setItem("token", res.data.token);

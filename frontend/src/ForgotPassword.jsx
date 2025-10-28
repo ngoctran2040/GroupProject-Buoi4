@@ -14,9 +14,9 @@ function ForgotPassword() {
     setIsSuccess(false);
 
     try {
-      // 1. Gọi API backend mà chúng ta vừa tạo
-      const res = await axios.post('http://localhost:3000/users/forgot-password', { email });
-      
+      // ✅ Gọi đúng endpoint backend
+      const res = await axios.post('http://localhost:3000/auth/forgot-password', { email });
+
       setMessage(res.data.message || 'Đã gửi email, vui lòng kiểm tra hộp thư của bạn.');
       setIsSuccess(true);
     } catch (err) {
@@ -33,7 +33,6 @@ function ForgotPassword() {
           Nhập email của bạn để nhận link đặt lại mật khẩu.
         </p>
         
-        {/* Chúng ta dùng lại style 'label' từ Hoạt động 2 */}
         <label htmlFor="email-input" style={{textAlign: 'left'}}>Email:</label>
         <input
           id="email-input"
@@ -47,14 +46,12 @@ function ForgotPassword() {
         
         <button type="submit">Gửi Email</button>
 
-        {/* Hiển thị thông báo (thành công hoặc lỗi) */}
         {message && (
-          <p className={`message ${isSuccess ? "success" : ""}`}>
+          <p className={`message ${isSuccess ? 'success' : ''}`}>
             {message}
           </p>
         )}
 
-        {/* Link để quay về trang Đăng nhập */}
         <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
           <Link to="/login">Quay lại Đăng nhập</Link>
         </div>
@@ -64,4 +61,3 @@ function ForgotPassword() {
 }
 
 export default ForgotPassword;
-
