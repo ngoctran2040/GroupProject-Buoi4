@@ -1,11 +1,18 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const userController = require('../controllers/userController');
+const userController = require("../controllers/userController");
+const auth = require("../middleware/auth");
+const multer = require("multer");
 
-// Lấy danh sách user (GET)
-router.get('/users', userController.getUsers);
+const upload = multer({ dest: "uploads/" });
 
-// Thêm user mới (POST)
-router.post('/users', userController.createUser);
+// --- Lấy thông tin cá nhân ---
+router.get("/profile", auth, userController.getProfile);
 
-module.exports = router;
+// --- Cập nhật thông tin cá nhân ---
+router.put("/profile", auth, userController.updateProfile);
+
+// --- Upload ảnh đại diện ---
+router.put("/profile/avatar", auth, upload.single("avatar"), userController.uploadAvatar);
+
+module.exports = router; // ✅ Chỉ export route người dùng
