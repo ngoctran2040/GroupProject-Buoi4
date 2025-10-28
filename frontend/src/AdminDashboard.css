@@ -1,0 +1,84 @@
+.admin-container {
+  width: 90%;
+  max-width: 1000px;
+  margin: 2rem auto;
+  font-family: Arial, sans-serif;
+}
+
+.admin-container h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+.admin-message {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 5px;
+  margin-bottom: 1.5rem;
+}
+.admin-message.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+.admin-message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden; /* Giúp bo góc hoạt động */
+}
+
+.users-table th,
+.users-table td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.users-table th {
+  background-color: #f9f9f9;
+  font-size: 0.9rem;
+  color: #555;
+  text-transform: uppercase;
+}
+
+.users-table td {
+  color: #333;
+  word-break: break-all; /* Ngăn email dài vỡ layout */
+}
+
+.role-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #fff;
+}
+.role-badge.role-admin {
+  background-color: #f39c12; /* Màu cam */
+}
+.role-badge.role-user {
+  background-color: #007bff; /* Màu xanh */
+}
+
+.delete-btn {
+  padding: 0.5rem 0.8rem;
+  background-color: #dc3545; /* Màu đỏ */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.delete-btn:hover {
+  background-color: #c82333;
+}
