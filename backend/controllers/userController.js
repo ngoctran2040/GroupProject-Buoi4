@@ -1,261 +1,163 @@
-<<<<<<< Updated upstream
-// backend/controllers/userController.js
-
-// --- Import User Model đã được tạo ở models/User.js ---
-const User = require('../models/User');
-
-// --- GET /users - Lấy tất cả user từ MongoDB ---
-const getUsers = async (req, res) => {
-  try {
-    // Dùng User model và hàm find() để lấy tất cả document trong collection 'users'
-    const users = await User.find();
-    res.status(200).json(users);
-  } catch (error) {
-    // Nếu có lỗi, trả về status 500 (Internal Server Error)
-    res.status(500).json({ message: "Đã có lỗi xảy ra trên server", error: error.message });
-  }
-};
-
-// --- POST /users - Tạo một user mới và lưu vào MongoDB ---
-const createUser = async (req, res) => {
-  // Thêm dòng console.log để kiểm tra dữ liệu nhận được
-  console.log('Backend đã nhận được body để tạo user:', req.body); 
-  
-  // Lấy name và email từ body của request
-  const { name, email } = req.body;
-
-  // Kiểm tra xem name và email có được cung cấp không
-  if (!name || !email) {
-    return res.status(400).json({ message: "Vui lòng cung cấp đủ tên và email." });
-  }
-
-  // Tạo một đối tượng user mới dựa trên Model
-  const newUser = new User({
-    name,
-    email
-  });
-
-  try {
-    // Dùng hàm save() để lưu user mới vào database
-    const savedUser = await newUser.save();
-    // Trả về user vừa được tạo với status 201 (Created)
-    res.status(201).json(savedUser);
-  } catch (error) {
-    // Nếu có lỗi (ví dụ: email bị trùng), trả về status 400 (Bad Request)
-    res.status(400).json({ message: "Không thể tạo user", error: error.message });
-=======
+// --- Import thư viện ---
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
 const User = require("../models/userModel");
-const sendEmail = require("../utils/sendEmail");
-const { cloudinary } = require("../config/cloudinary"); // ✅ Import đúng từ config
+const { cloudinary } = require("../config/cloudinary");
 
-// --- AUTH (Hoạt động 1) ---
+// === ĐĂNG KÝ NGƯỜI DÙNG ===
 exports.signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: "Email đã tồn tại" });
 
+    // Kiểm tra email đã tồn tại
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
+      return res.status(400).json({ message: "Email đã tồn tại" });
+
+    // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Tạo user mới
     const newUser = await User.create({ name, email, password: hashedPassword });
-    res.status(201).json({ message: "Đăng ký thành công", user: newUser });
+
+    res.status(201).json({
+      message: "Đăng ký thành công!",
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+      },
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Lỗi khi đăng ký:", err);
+    res.status(500).json({ message: "Lỗi server khi đăng ký" });
   }
 };
 
+// === ĐĂNG NHẬP ===
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // Tìm user theo email
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "Email không tồn tại" });
+    if (!user)
+      return res.status(404).json({ message: "Email không tồn tại" });
 
+    // So sánh mật khẩu
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Sai mật khẩu" });
+    if (!isMatch)
+      return res.status(400).json({ message: "Sai mật khẩu" });
 
+    // ✅ Tạo JWT token (1h)
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
+      { id: user._id, email: user.email, role: user.role || "user" },
+      process.env.JWT_SECRET || "mySecretKey123",
       { expiresIn: "1h" }
     );
 
-    res.json({ message: "Đăng nhập thành công", token, role: user.role });
+    res.status(200).json({
+      message: "Đăng nhập thành công!",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role || "user",
+      },
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Lỗi khi đăng nhập:", err);
+    res.status(500).json({ message: "Lỗi server khi đăng nhập" });
   }
 };
 
-exports.logout = (req, res) => {
-  res.json({ message: "Đăng xuất thành công (xóa token ở client)" });
+// === LẤY DANH SÁCH NGƯỜI DÙNG ===
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.status(200).json(users);
+  } catch (err) {
+    console.error("❌ Lỗi khi lấy danh sách người dùng:", err);
+    res.status(500).json({ message: "Lỗi server khi lấy danh sách người dùng" });
+  }
 };
 
-// --- USER PROFILE (Hoạt động 2) ---
+// === XÓA NGƯỜI DÙNG THEO ID ===
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user)
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    res.status(200).json({ message: "Xóa người dùng thành công!" });
+  } catch (err) {
+    console.error("❌ Lỗi khi xóa người dùng:", err);
+    res.status(500).json({ message: "Lỗi server khi xóa người dùng" });
+  }
+};
+
+// === LẤY THÔNG TIN CÁ NHÂN ===
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
-    res.json(user);
+    const userId = req.user.id || req.user._id; // ✅ Phòng trường hợp payload dùng _id
+    const user = await User.findById(userId).select("-password");
+
+    if (!user)
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    res.status(200).json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Lỗi khi lấy thông tin cá nhân:", err);
+    res.status(500).json({ message: "Lỗi server khi lấy thông tin cá nhân" });
   }
 };
 
+// === CẬP NHẬT THÔNG TIN CÁ NHÂN ===
 exports.updateProfile = async (req, res) => {
-  const { name, email } = req.body;
   try {
-    let user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
-
-    if (email && email !== user.email) {
-      const existingUser = await User.findOne({ email });
-      if (existingUser && existingUser._id.toString() !== req.user.id) {
-        return res.status(400).json({ message: "Email này đã được sử dụng" });
-      }
-    }
-
+    const { name, email } = req.body;
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      { $set: { name, email } },
+      { name, email },
       { new: true }
     ).select("-password");
 
-    res.json({ message: "Cập nhật thông tin thành công", user: updatedUser });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    if (!updatedUser)
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
 
-// --- ADMIN (Hoạt động 3) ---
-exports.getUsers = async (req, res) => {
-  try {
-    const users = await User.find().select("-password");
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.createUser = async (req, res) => {
-  try {
-    const newUser = new User(req.body);
-    await newUser.save();
-    res.status(201).json(newUser);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-exports.deleteUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
-
-    if (user.avatar && user.avatar.public_id) {
-      await cloudinary.uploader.destroy(user.avatar.public_id);
-    }
-
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: "Xóa người dùng thành công" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// --- ADVANCED (Hoạt động 4) ---
-// 4.1. Quên mật khẩu
-exports.forgotPassword = async (req, res) => {
-  try {
-    const user = await User.findOne({ email: req.body.email });
-    if (!user) return res.status(404).json({ message: "Không tìm thấy email" });
-
-    const resetToken = crypto.randomBytes(20).toString("hex");
-    user.resetPasswordToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-    await user.save();
-
-    const resetUrl = `${req.protocol}://localhost:3001/reset-password/${resetToken}`;
-    const message = `Bạn nhận được email này vì bạn (hoặc ai đó) đã yêu cầu đặt lại mật khẩu.\n\n${resetUrl}\n\nNếu không phải bạn yêu cầu, vui lòng bỏ qua email này.`;
-
-    await sendEmail({
-      email: user.email,
-      subject: "Yêu cầu đặt lại mật khẩu",
-      message,
+    res.status(200).json({
+      message: "Cập nhật thành công!",
+      user: updatedUser,
     });
-
-    res.status(200).json({ message: "Đã gửi email đặt lại mật khẩu" });
   } catch (err) {
-    console.error("LỖI forgotPassword:", err);
-    res.status(500).json({ error: "Lỗi khi gửi email" });
+    console.error("❌ Lỗi khi cập nhật thông tin cá nhân:", err);
+    res.status(500).json({ message: "Lỗi server khi cập nhật thông tin cá nhân" });
   }
 };
 
-// 4.2. Đặt lại mật khẩu
-exports.resetPassword = async (req, res) => {
-  try {
-    const resetPasswordToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() },
-    });
-    if (!user)
-      return res.status(400).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
-
-    user.password = await bcrypt.hash(req.body.password, 10);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-    await user.save();
-
-    res.status(200).json({ message: "Đổi mật khẩu thành công" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// 4.3. Upload Avatar (Chuẩn mới nhất)
+// === UPLOAD ẢNH ĐẠI DIỆN ===
 exports.uploadAvatar = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    if (!req.file)
+      return res.status(400).json({ message: "Không có file được tải lên" });
 
-    if (!req.file) {
-      return res.status(400).json({ message: "Vui lòng đính kèm file với field 'avatar'" });
-    }
-
-    // Xóa avatar cũ nếu có
-    if (user.avatar && user.avatar.public_id) {
-      await cloudinary.uploader.destroy(user.avatar.public_id);
-    }
-
-    // Upload ảnh mới lên Cloudinary (dạng buffer)
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "avatars" },
-        (err, uploaded) => (err ? reject(err) : resolve(uploaded))
-      );
-      stream.end(req.file.buffer);
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "user_avatars",
     });
 
-    user.avatar = {
-      public_id: result.public_id,
-      url: result.secure_url,
-    };
-    await user.save();
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { avatar: { url: result.secure_url, public_id: result.public_id } },
+      { new: true }
+    );
 
-    res.json({
-      message: "Upload avatar thành công!",
+    res.status(200).json({
+      message: "Cập nhật ảnh đại diện thành công!",
       avatarUrl: user.avatar.url,
     });
   } catch (err) {
-    console.error("Lỗi khi upload avatar:", err);
-    res.status(500).json({ error: err.message || "Lỗi server khi upload ảnh" });
->>>>>>> Stashed changes
+    console.error("❌ Lỗi khi upload avatar:", err);
+    res.status(500).json({ message: "Lỗi server khi upload avatar" });
   }
-};
-
-// --- Xuất các hàm để file route có thể sử dụng ---
-module.exports = {
-  getUsers,
-  createUser
 };

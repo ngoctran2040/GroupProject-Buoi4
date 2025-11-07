@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'; // ✅ 1. Thêm useMemo
-import axios from 'axios';
-import './Auth.css'; // Dùng chung CSS
+import React, { useState, useEffect, useMemo } from "react";
+import axios from "axios";
+import "./Auth.css";
 
-// Component hiển thị loading (cho đẹp)
+// Component hiển thị loading
 const LoadingSpinner = () => (
   <div className="spinner-overlay">
     <div className="spinner"></div>
@@ -11,109 +11,143 @@ const LoadingSpinner = () => (
 
 function Profile() {
   // --- STATE CHO THÔNG TIN USER ---
-  const [userData, setUserData] = useState({ name: '', email: '' });
-  const [formData, setFormData] = useState({ name: '', email: '' });
-  const [avatarUrl, setAvatarUrl] = useState(''); // ✅ State mới cho Avatar
-  
-  // --- STATE ĐIỀU KHIỂN UI ---
+  const [userData, setUserData] = useState({ name: "", email: "" });
+  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [avatarUrl, setAvatarUrl] = useState("");
+
+  // --- STATE UI ---
   const [isEditing, setIsEditing] = useState(false);
-  const [isUploading, setIsUploading] = useState(false); // ✅ State mới cho loading
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
+  const refreshToken = localStorage.getItem("refreshToken");
 
-  // --- CẤU HÌNH HEADERS ---
-  // ✅ 2. Dùng useMemo để "ghi nhớ" authHeaders
-  // Chỉ tạo lại object này khi 'token' thay đổi.
-  const authHeaders = useMemo(() => ({
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }), [token]);
-  
-  // ✅ Tương tự, dùng useMemo cho fileUploadHeaders
-  const fileUploadHeaders = useMemo(() => ({
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'multipart/form-data',
-    },
-  }), [token]);
+  // --- HEADER XÁC THỰC ---
+  const authHeaders = useMemo(
+    () => ({
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+    [token]
+  );
 
-  // --- HÀM LOAD THÔNG TIN ---
+  const fileUploadHeaders = useMemo(
+    () => ({
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+    [token]
+  );
+
+  // --- HÀM FETCH PROFILE (có tự refresh token) ---
   useEffect(() => {
     if (!token) {
-      setError('Bạn cần đăng nhập để xem thông tin này.');
+      setError("Bạn cần đăng nhập để xem thông tin này.");
       return;
     }
+
     const fetchProfile = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/users/profile', authHeaders);
+        // 🟢 Gọi API profile
+        const res = await axios.get(
+          "http://localhost:3000/users/profile",
+          authHeaders
+        );
         setUserData(res.data);
         setFormData(res.data);
-        setAvatarUrl(res.data.avatar?.url || ''); // ✅ Lấy URL avatar
+        setAvatarUrl(res.data.avatar?.url || "");
       } catch (err) {
-        setError('Không thể tải thông tin cá nhân. Vui lòng thử lại.');
-        console.error(err);
+        // 🔴 Nếu token hết hạn → tự refresh token
+        if (err.response?.status === 401 && refreshToken) {
+          try {
+            const refreshRes = await axios.post(
+              "http://localhost:3000/auth/refresh",
+              { token: refreshToken }
+            );
+            // ✅ Lưu lại token mới
+            localStorage.setItem("token", refreshRes.data.accessToken);
+
+            // ✅ Gọi lại API profile với token mới
+            const retry = await axios.get(
+              "http://localhost:3000/users/profile",
+              {
+                headers: {
+                  Authorization: `Bearer ${refreshRes.data.accessToken}`,
+                },
+              }
+            );
+            setUserData(retry.data);
+            setFormData(retry.data);
+            setAvatarUrl(retry.data.avatar?.url || "");
+          } catch (refreshErr) {
+            console.error("Refresh token error:", refreshErr);
+            setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+          }
+        } else {
+          console.error(err);
+          setError("Không thể tải thông tin cá nhân. Vui lòng thử lại.");
+        }
       }
     };
+
     fetchProfile();
-  }, [token, authHeaders]); // ✅ 3. Thêm authHeaders vào dependency array
+  }, [token, authHeaders, refreshToken]);
 
-  // --- HÀM XỬ LÝ SỰ KIỆN ---
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleEditToggle = (e) => {
-    e.preventDefault();
-    setIsEditing(!isEditing);
-    setFormData(userData); // Reset form về dữ liệu gốc khi bấm Hủy
-    setMessage('');
-    setError('');
-  };
-
-  // 2. Xử lý CẬP NHẬT THÔNG TIN (Tên, Email)
+  // --- CẬP NHẬT THÔNG TIN ---
   const handleSubmitInfo = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
     try {
-      const res = await axios.put('http://localhost:3000/users/profile', formData, authHeaders);
-      setUserData(res.data.user); // Cập nhật lại state gốc
-      setMessage(res.data.message || 'Cập nhật thành công!');
-      setIsEditing(false); // Tắt chế độ sửa
+      const res = await axios.put(
+        "http://localhost:3000/users/profile",
+        formData,
+        authHeaders
+      );
+      setUserData(res.data.user);
+      setMessage(res.data.message || "Cập nhật thành công!");
+      setIsEditing(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Lỗi khi cập nhật!');
+      setError(err.response?.data?.message || "Lỗi khi cập nhật!");
     }
   };
 
-  // ✅ 3. Xử lý UPLOAD AVATAR MỚI
+  // --- UPLOAD AVATAR ---
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const bodyFormData = new FormData();
-    bodyFormData.append('avatar', file); // 'avatar' phải khớp với route BE
+    bodyFormData.append("avatar", file);
 
-    setError('');
-    setMessage('');
-    setIsUploading(true); // Bật loading
+    setIsUploading(true);
+    setError("");
+    setMessage("");
 
     try {
       const res = await axios.put(
-        'http://localhost:3000/users/profile/avatar',
+        "http://localhost:3000/users/profile/avatar",
         bodyFormData,
-        fileUploadHeaders // Dùng header cho file
+        fileUploadHeaders
       );
-      setAvatarUrl(res.data.avatarUrl); // Cập nhật ảnh đại diện ngay lập tức
-      setMessage(res.data.message || 'Upload avatar thành công!');
+      setAvatarUrl(res.data.avatarUrl);
+      setMessage(res.data.message || "Upload avatar thành công!");
     } catch (err) {
-      setError(err.response?.data?.message || 'Lỗi khi upload ảnh!');
+      setError(err.response?.data?.message || "Lỗi khi upload ảnh!");
     } finally {
-      setIsUploading(false); // Tắt loading
+      setIsUploading(false);
     }
+  };
+
+  // --- CHUYỂN CHẾ ĐỘ EDIT ---
+  const handleEditToggle = (e) => {
+    e.preventDefault();
+    setIsEditing(!isEditing);
+    setFormData(userData);
+    setMessage("");
+    setError("");
   };
 
   // --- RENDER ---
@@ -127,34 +161,35 @@ function Profile() {
 
   return (
     <div className="auth-container">
-      {/* ✅ Hiển thị loading spinner */}
       {isUploading && <LoadingSpinner />}
 
       <form className="auth-form" onSubmit={handleSubmitInfo}>
         <h2>Thông tin cá nhân</h2>
-        
-        {/* --- KHỐI AVATAR --- */}
+
+        {/* --- AVATAR --- */}
         <div className="avatar-section">
-          <img 
-            src={avatarUrl || 'https://placehold.co/150x150/EFEFEF/AAAAAA?text=Avatar'} 
-            alt="Avatar" 
+          <img
+            src={
+              avatarUrl ||
+              "https://placehold.co/150x150/EFEFEF/AAAAAA?text=Avatar"
+            }
+            alt="Avatar"
             className="profile-avatar"
           />
-          <input 
-            type="file" 
+          <input
+            type="file"
             id="avatar-upload"
             onChange={handleAvatarChange}
             accept="image/png, image/jpeg"
-            style={{ display: 'none' }} // Ẩn input gốc
+            style={{ display: "none" }}
           />
           <label htmlFor="avatar-upload" className="avatar-upload-button">
             Đổi ảnh
           </label>
         </div>
-        
-        {/* --- KHỐI THÔNG TIN --- */}
+
+        {/* --- THÔNG TIN NGƯỜI DÙNG --- */}
         {!isEditing ? (
-          // --- CHẾ ĐỘ XEM (VIEW MODE) ---
           <div className="profile-view">
             <div className="view-field">
               <label>Tên:</label>
@@ -167,7 +202,6 @@ function Profile() {
             <button onClick={handleEditToggle}>Cập nhật thông tin</button>
           </div>
         ) : (
-          // --- CHẾ ĐỘ SỬA (EDIT MODE) ---
           <div className="profile-edit">
             <label htmlFor="name-input">Tên:</label>
             <input
@@ -175,26 +209,35 @@ function Profile() {
               type="text"
               name="name"
               value={formData.name}
-              onChange={handleChange}
+              onChange={(e) =>
+                setFormData({ ...formData, [e.target.name]: e.target.value })
+              }
               required
             />
-            
+
             <label htmlFor="email-input">Gmail:</label>
             <input
               id="email-input"
               type="email"
               name="email"
               value={formData.email}
-              onChange={handleChange}
+              onChange={(e) =>
+                setFormData({ ...formData, [e.target.name]: e.target.value })
+              }
               required
             />
+
             <div className="button-group">
-              <button type="submit" className="button-save">Lưu thay đổi</button>
-              <button onClick={handleEditToggle} className="button-cancel">Hủy</button>
+              <button type="submit" className="button-save">
+                Lưu thay đổi
+              </button>
+              <button onClick={handleEditToggle} className="button-cancel">
+                Hủy
+              </button>
             </div>
           </div>
         )}
-        
+
         {message && <p className="message success">{message}</p>}
         {error && <p className="message">{error}</p>}
       </form>
@@ -203,4 +246,3 @@ function Profile() {
 }
 
 export default Profile;
-

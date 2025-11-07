@@ -1,53 +1,43 @@
-<<<<<<< Updated upstream
-// --- Import các thư viện cần thiết ---
-const express = require('express');
-const mongoose = require('mongoose'); // Thư viện để làm việc với MongoDB
-const cors = require('cors');
-require('dotenv').config(); // Nạp các biến môi trường từ file .env
+// --- Import thư viện ---
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const dotenv = require("dotenv");
 
+// --- Cấu hình .env ---
+dotenv.config();
+
+// --- Khởi tạo app Express ---
 const app = express();
 
-// --- Sử dụng các Middleware ---
-// 1. Cho phép các yêu cầu từ các domain khác (CORS)
-app.use(cors()); 
+// --- Middleware ---
+app.use(cors({ origin: "*" })); // Cho phép CORS từ mọi nguồn
+app.use(express.json()); // Cho phép đọc JSON body
 
-// 2. Cho phép đọc dữ liệu JSON từ body của request
-app.use(express.json());
+// --- Kết nối MongoDB ---
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ MongoDB connected successfully!"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err.message));
 
-// --- Kết nối tới cơ sở dữ liệu MongoDB Atlas ---
-// Lấy chuỗi kết nối từ file .env để bảo mật
-=======
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+// --- Import routes ---
+const userRoutes = require("./routes/user");
+const authRoutes = require("./routes/auth"); // ✅ Thêm route cho đăng nhập, đăng ký
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+// --- Dùng route ---
+app.use("/users", userRoutes); // route cho quản lý người dùng (Admin)
+app.use("/auth", authRoutes);  // route cho xác thực (đăng ký, đăng nhập, quên mk, reset mk)
 
-// Kết nối MongoDB
->>>>>>> Stashed changes
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
-
-// Dùng route /users cho cả CRUD và auth
-const userRoutes = require('./routes/user');
-app.use('/users', userRoutes);
-
-<<<<<<< Updated upstream
-// --- Sử dụng route cho users ---
-// Tất cả các request tới '/users' sẽ được xử lý bởi userRoutes
-app.use('/users', userRoutes);
+// --- Route mặc định ---
+app.get("/", (req, res) => {
+  res.send("✅ Server API đang hoạt động!");
+});
 
 // --- Khởi động server ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
-=======
-// Khởi động server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
->>>>>>> Stashed changes
