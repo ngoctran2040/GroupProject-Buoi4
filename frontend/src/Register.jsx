@@ -19,7 +19,7 @@ function Register() {
     e.preventDefault();
     setIsSuccess(false); // Reset
     try {
-      const res = await axios.post("http://localhost:3000/users/signup", formData);
+      const res = await axios.post("http://localhost:3000/auth/signup", formData);
       setMessage(res.data.message || "Đăng ký thành công!");
       setIsSuccess(true); // ✅ Đặt là true
     } catch (err) {

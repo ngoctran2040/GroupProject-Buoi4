@@ -39,8 +39,14 @@ function Login({ onLoginSuccess }) {
 
       if (onLoginSuccess) onLoginSuccess();
 
+      // ✅ Điều hướng theo role
+      const userRole = res.data.role || "user";
       setTimeout(() => {
-        navigate("/profile"); // chuyển đến trang cá nhân
+        if (userRole === "admin" || userRole === "moderator") {
+          navigate("/admin"); // 👉 chuyển sang trang AdminDashboard
+        } else {
+          navigate("/profile"); // 👉 nếu là user thường thì vào trang cá nhân
+        }
       }, 1000);
     } catch (err) {
       setMessage(err.response?.data?.message || "Lỗi khi đăng nhập!");

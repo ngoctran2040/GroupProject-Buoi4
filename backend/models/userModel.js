@@ -22,17 +22,15 @@ const userSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin','moderator'],
     default: 'user',
   },
 
-  // ✅ THÊM TRƯỜNG NÀY — để lưu avatar vào DB
   avatar: {
     public_id: { type: String, default: null },
     url: { type: String, default: null },
   },
 
-  // Cho hoạt động 4
   resetPasswordToken: String,
   resetPasswordExpire: Date,
 }, { 

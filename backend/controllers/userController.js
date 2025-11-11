@@ -1,6 +1,9 @@
 // --- Import thư viện ---
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
+const sharp = require("sharp");
+const streamifier = require("streamifier");
 const User = require("../models/userModel");
 const { cloudinary } = require("../config/cloudinary");
 
@@ -9,16 +12,18 @@ exports.signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Kiểm tra email đã tồn tại
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "Email đã tồn tại" });
 
-    // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Tạo user mới
-    const newUser = await User.create({ name, email, password: hashedPassword });
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: "user",
+    });
 
     res.status(201).json({
       message: "Đăng ký thành công!",
@@ -26,6 +31,7 @@ exports.signup = async (req, res) => {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
+        role: newUser.role,
       },
     });
   } catch (err) {
@@ -38,20 +44,16 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Tìm user theo email
     const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({ message: "Email không tồn tại" });
 
-    // So sánh mật khẩu
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(400).json({ message: "Sai mật khẩu" });
 
-    // ✅ Tạo JWT token (1h)
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role || "user" },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET || "mySecretKey123",
       { expiresIn: "1h" }
     );
@@ -63,7 +65,7 @@ exports.login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role || "user",
+        role: user.role,
       },
     });
   } catch (err) {
@@ -83,13 +85,12 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// === XÓA NGƯỜI DÙNG THEO ID ===
+// === XÓA NGƯỜI DÙNG ===
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user)
       return res.status(404).json({ message: "Không tìm thấy người dùng" });
-
     res.status(200).json({ message: "Xóa người dùng thành công!" });
   } catch (err) {
     console.error("❌ Lỗi khi xóa người dùng:", err);
@@ -100,12 +101,10 @@ exports.deleteUser = async (req, res) => {
 // === LẤY THÔNG TIN CÁ NHÂN ===
 exports.getProfile = async (req, res) => {
   try {
-    const userId = req.user.id || req.user._id; // ✅ Phòng trường hợp payload dùng _id
+    const userId = req.user.id || req.user._id;
     const user = await User.findById(userId).select("-password");
-
     if (!user)
       return res.status(404).json({ message: "Không tìm thấy người dùng" });
-
     res.status(200).json(user);
   } catch (err) {
     console.error("❌ Lỗi khi lấy thông tin cá nhân:", err);
@@ -136,26 +135,52 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// === UPLOAD ẢNH ĐẠI DIỆN ===
+// === UPLOAD ẢNH ĐẠI DIỆN (Nâng cao: Multer + Sharp + Cloudinary) ===
 exports.uploadAvatar = async (req, res) => {
   try {
     if (!req.file)
       return res.status(400).json({ message: "Không có file được tải lên" });
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "user_avatars",
-    });
+    // ✅ Resize bằng Sharp
+    const resizedBuffer = await sharp(req.file.path)
+      .resize(300, 300)
+      .jpeg({ quality: 80 })
+      .toBuffer();
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { avatar: { url: result.secure_url, public_id: result.public_id } },
-      { new: true }
+    // ✅ Upload lên Cloudinary qua stream
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: "user_avatars", resource_type: "image" },
+      async (error, result) => {
+        if (error) {
+          console.error("❌ Lỗi upload Cloudinary:", error);
+          return res.status(500).json({ message: "Lỗi khi upload lên Cloudinary" });
+        }
+
+        // ✅ Cập nhật DB
+        const user = await User.findByIdAndUpdate(
+          req.user.id,
+          {
+            avatar: {
+              url: result.secure_url,
+              public_id: result.public_id,
+            },
+          },
+          { new: true }
+        );
+
+        // ✅ Xóa file tạm
+        fs.unlinkSync(req.file.path);
+
+        res.status(200).json({
+          message: "Cập nhật ảnh đại diện thành công!",
+          avatarUrl: user.avatar.url,
+        });
+      }
     );
 
-    res.status(200).json({
-      message: "Cập nhật ảnh đại diện thành công!",
-      avatarUrl: user.avatar.url,
-    });
+    // ✅ Dùng streamifier để gửi buffer
+    streamifier.createReadStream(resizedBuffer).pipe(uploadStream);
+
   } catch (err) {
     console.error("❌ Lỗi khi upload avatar:", err);
     res.status(500).json({ message: "Lỗi server khi upload avatar" });

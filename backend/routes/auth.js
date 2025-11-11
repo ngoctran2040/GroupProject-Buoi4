@@ -1,18 +1,20 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const authController = require('../controllers/authController');
+const authController = require("../controllers/authController");
 
 // --- Đăng ký ---
-router.post('/signup', authController.signup);
+router.post("/signup", authController.signup);
 
 // --- Đăng nhập ---
-router.post('/login', authController.login);
-router.post('/refresh', authController.refreshToken);
+router.post("/login", authController.login);
+
+// --- Làm mới token ---
+router.post("/refresh", authController.refreshToken);
 
 // --- Quên mật khẩu ---
-router.post('/forgot-password', authController.forgotPassword);
+router.post("/forgot-password", authController.forgotPassword);
 
 // --- Đặt lại mật khẩu ---
-router.post('/reset-password/:token', authController.resetPassword);
+router.post("/reset-password/:token", authController.resetPassword);
 
 module.exports = router;
