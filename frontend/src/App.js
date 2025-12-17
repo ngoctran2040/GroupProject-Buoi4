@@ -1,43 +1,84 @@
+// --- App.js (đã hợp nhất hoàn chỉnh) ---
+import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
+import "./App.css";
 
-// frontend/src/App.js
+// Import tất cả component
+import Register from "./Register";
+import Login from "./Login";
+import Logout from "./Logout";
+import Profile from "./Profile";
+import AdminDashboard from "./AdminDashboard";
+import ForgotPassword from "./ForgotPassword";
+import ResetPassword from "./ResetPassword";
 
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import UserList from './components/UserList';
-import AddUser from './components/AddUser';
-import './App.css';
-
+// Hàm helper để lấy thông tin role từ localStorage
+const getRole = () => localStorage.getItem("role");
 
 function App() {
-  const [users, setUsers] = useState([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
 
-  // Hàm để lấy danh sách user từ backend
-  const fetchUsers = async () => {
-    try {
-      const response = await axios.get("http://localhost:3000/users");
-      setUsers(response.data);
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách user!", error);
-    }
+  // Lấy role ngay khi App load hoặc khi isLoggedIn thay đổi
+  const userRole = isLoggedIn ? getRole() : null;
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
   };
 
-  // Tự động gọi hàm fetchUsers khi component được render lần đầu
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("email");
+    localStorage.removeItem("role");
+    setIsLoggedIn(false);
+  };
 
   return (
-    <div className="App">
+    <Router>
+      <nav className="navbar">
+        <div className="nav-links">
+          {!isLoggedIn ? (
+            <>
+              <Link to="/register">Đăng ký</Link>
+              <Link to="/login">Đăng nhập</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/profile">Thông tin cá nhân</Link>
 
-      <header className="App-header">
-        <h1>Quản lý Người dùng</h1>
-        {/* Truyền hàm fetchUsers xuống cho AddUser để nó có thể gọi làm mới danh sách */}
-        <AddUser onUserAdded={fetchUsers} />
-        {/* Truyền danh sách users xuống cho UserList để nó hiển thị */}
-        <UserList users={users} />
-      </header>
+              {/* Hiển thị link Quản lý nếu role là admin */}
+              {userRole === "admin" && <Link to="/admin">Quản lý</Link>}
 
-    </div>
+              <Link to="/logout">Đăng xuất</Link>
+            </>
+          )}
+        </div>
+      </nav>
+
+      <Routes>
+        {/* --- Route cho người CHƯA đăng nhập --- */}
+        {!isLoggedIn ? (
+          <>
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login onLoginSuccess={handleLogin} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="*" element={<Navigate to="/login" />} />
+          </>
+        ) : (
+          /* --- Route cho người ĐÃ đăng nhập --- */
+          <>
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/logout" element={<Logout onLogoutSuccess={handleLogout} />} />
+
+            {userRole === "admin" && (
+              <Route path="/admin" element={<AdminDashboard />} />
+            )}
+
+            <Route path="*" element={<Navigate to="/profile" />} />
+          </>
+        )}
+      </Routes>
+    </Router>
   );
 }
 

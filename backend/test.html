@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h3>Test POST /users</h3>
+<form onsubmit="sendUser(event)">
+  Name: <input id="name"><br>
+  Email: <input id="email"><br>
+  <button type="submit">Send</button>
+</form>
+<pre id="result"></pre>
+
+<script>
+async function sendUser(e) {
+  e.preventDefault();
+  const res = await fetch('http://localhost:3000/users', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      name: document.getElementById('name').value,
+      email: document.getElementById('email').value
+    })
+  });
+  document.getElementById('result').textContent =
+    JSON.stringify(await res.json(), null, 2);
+}
+</script>
+</body>
+</html>
